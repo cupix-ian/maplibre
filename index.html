@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .overlay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+      }
+
+      .overlay button {
+        font: 600 12px/20px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        background-color: #3386c0;
+        color: #fff;
+        display: inline-block;
+        margin: 0;
+        padding: 10px 20px;
+        border: none;
+        cursor: pointer;
+        border-radius: 3px;
+      }
+
+      .overlay button:hover {
+        background-color: #4ea0da;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map" style="width: 100vw; height: 100vh"></div>
+    <div class="overlay">
+      <button id="replay">Replay</button>
+    </div>
+  </body>
+  <script
+    src="https://www.unpkg.com/turf@2.0.0/turf.min.js"
+    charset="utf-8"
+  ></script>
+  <script src="index.js"></script>
+</html>
