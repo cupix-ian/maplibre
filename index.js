@@ -5,7 +5,7 @@ const map = new maplibregl.Map({
   container: "map",
   style:
     "https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL", // style URL
-  center: [-77.132, 37.413],
+  center: [-77.132, 34.413],
   zoom: 7
 });
 
@@ -90,11 +90,36 @@ map.on("load", () => {
   });
 
   function animate() {
-    const currentSegment = turf.along(fullRoute, incrementDistance * counter,  "kilometers");
-    route.features[0].geometry.coordinates.push(currentSegment.geometry.coordinates);
+    // 현재 counter에 따른 경로의 새로운 지점 계산
+    let currentSegment = turf.along(fullRoute, incrementDistance * counter,  "kilometers");
+    let newCoordinates = currentSegment.geometry.coordinates;
 
-    // 현재 라인의 마지막 점을 화살표의 위치로 설정
-    arrow.features[0].geometry.coordinates = currentSegment.geometry.coordinates;
+    // 현재 위치가 지도 경계 내에 있는지 확인
+    const bounds = map.getBounds();
+    const isWithinBounds = bounds.contains(newCoordinates);
+    const isDestWithinBounds = bounds.contains(destination);
+
+    if (isDestWithinBounds) {
+      map.setPaintProperty('arrow', 'icon-opacity', 0);
+      return;
+    }
+
+    if (!isWithinBounds) {
+      const bboxPolygon = turf.bboxPolygon([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]);
+      const line = turf.lineString([origin, newCoordinates]);
+      const intersection = turf.lineIntersect(line, bboxPolygon);
+
+      if (intersection.features.length > 0) {
+        // 교차점 좌표로 설정
+        newCoordinates = intersection.features[0].geometry.coordinates;
+      }
+    }
+
+    // 경로에 교차점까지의 좌표를 추가
+    route.features[0].geometry.coordinates.push(newCoordinates);
+
+    // 화살표 아이콘의 위치를 업데이트
+    arrow.features[0].geometry.coordinates = newCoordinates;
 
     // 화살표가 향하는 방향을 계산
     if (counter > 0) {
@@ -106,7 +131,7 @@ map.on("load", () => {
     map.getSource("route").setData(route);
     map.getSource("arrow").setData(arrow);
 
-    if (counter < steps) {
+    if (counter < steps && isWithinBounds) {
       requestAnimationFrame(animate);
     }
 
@@ -119,6 +144,8 @@ map.on("load", () => {
     map.getSource("route").setData(route);
     map.getSource("arrow").setData(arrow);
     counter = 0;
+    map.setPaintProperty('arrow', 'icon-opacity', 1);
+
     animate();
   });
 
