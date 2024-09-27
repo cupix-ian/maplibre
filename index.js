@@ -5,11 +5,11 @@ const map = new maplibregl.Map({
   container: "map",
   style:
     "https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL", // style URL
-  center: [-77.132, 34.413],
+  center: [-76.132, 36.413],
   zoom: 7
 });
 
-const origin = map.getCenter().toArray();
+let origin = map.getCenter().toArray();
 
 // Washington DC
 const destination = [-77.032, 38.913];
@@ -89,6 +89,8 @@ map.on("load", () => {
     }
   });
 
+  let animationFrameId = null; // 현재 실행 중인 requestAnimationFrame ID
+
   function animate() {
     // 현재 counter에 따른 경로의 새로운 지점 계산
     let currentSegment = turf.along(fullRoute, incrementDistance * counter,  "kilometers");
@@ -103,7 +105,6 @@ map.on("load", () => {
       map.setPaintProperty('arrow', 'icon-opacity', 0);
       return;
     }
-
     if (!isWithinBounds) {
       const bboxPolygon = turf.bboxPolygon([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]);
       const line = turf.lineString([origin, newCoordinates]);
@@ -118,8 +119,17 @@ map.on("load", () => {
     // 경로에 교차점까지의 좌표를 추가
     route.features[0].geometry.coordinates.push(newCoordinates);
 
+    // 좌표 비교에 사용할 임계값 설정 (소수점 차이가 거의 없는 경우 무시)
+    const epsilon = 1e-6;
+
     // 화살표 아이콘의 위치를 업데이트
-    arrow.features[0].geometry.coordinates = newCoordinates;
+    if (
+      Math.abs(arrow.features[0].geometry.coordinates[0] - newCoordinates[0]) > epsilon ||
+      Math.abs(arrow.features[0].geometry.coordinates[1] - newCoordinates[1]) > epsilon
+    ) {
+      arrow.features[0].geometry.coordinates = newCoordinates;
+      map.getSource("arrow").setData(arrow);
+    }
 
     // 화살표가 향하는 방향을 계산
     if (counter > 0) {
@@ -129,16 +139,16 @@ map.on("load", () => {
     }
 
     map.getSource("route").setData(route);
-    map.getSource("arrow").setData(arrow);
 
     if (counter < steps && isWithinBounds) {
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     }
 
     ++counter;
   }
 
   document.getElementById("replay").addEventListener("click", () => {
+
     route.features[0].geometry.coordinates = [origin];
     arrow.features[0].geometry.coordinates = origin;
     map.getSource("route").setData(route);
